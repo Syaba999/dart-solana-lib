@@ -15,7 +15,7 @@ class CompactArray<T> extends Serializable {
       } else if (value is int) {
         return Byte.from(value);
       } else {
-        return [];
+        throw FormatException('cannot serialize $value');
       }
     };
     final reducer = (List<int> values, List<int> next) => [...values, ...next];
