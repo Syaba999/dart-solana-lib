@@ -281,6 +281,24 @@ class SolanaClient {
 
     return Future.wait(confirmedTransactions);
   }
+
+  Future<Map<String, dynamic>> getTransaction(
+    TxSignature signature, {
+    TxStatus? commitment,
+  }) async {
+    final data = await _client.request(
+      'getTransaction',
+      params: <dynamic>[
+        signature.toString(),
+        <String, dynamic>{
+          'encoding': 'jsonParsed',
+          if (commitment != null) 'commitment': commitment.value,
+        }
+      ],
+    );
+
+    return data;
+  }
 }
 
 extension on TxStatus {

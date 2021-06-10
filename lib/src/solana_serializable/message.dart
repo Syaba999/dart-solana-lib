@@ -3,10 +3,11 @@ import 'package:solana/src/base58/base58.dart' as base58;
 import 'package:solana/src/solana_serializable/address.dart';
 import 'package:solana/src/solana_serializable/compact_array.dart';
 import 'package:solana/src/solana_serializable/instruction.dart';
+import 'package:solana/src/solana_serializable/int.dart';
 import 'package:solana/src/solana_serializable/message_header.dart';
 import 'package:solana/src/solana_serializable/solana_serializable.dart';
+import 'package:solana/src/types/account_meta.dart';
 import 'package:solana/src/types/blockhash.dart';
-import 'package:solana/src/util/solana_int_encoder.dart';
 
 /// This is an implementation of the Solana message format.
 class Message extends Serializable {
@@ -26,26 +27,24 @@ class Message extends Serializable {
     required int lamports,
     required Blockhash recentBlockhash,
   }) {
-    if (source == destination) {
-      throw const FormatException('source and destination cannot be the same');
-    }
-    final instruction = Instruction(
-      programIdIndex: 2,
-      accountIndices: CompactArray.fromList([0, 1]),
-      data: CompactArray.fromList(
-        [
-          ...2.toSolanaBytes(32),
-          ...lamports.toSolanaBytes(64),
-        ],
-      ),
+    final accounts = [
+      AccountMeta.writeable(pubKey: source, isSigner: true),
+      AccountMeta.writeable(pubKey: destination, isSigner: false),
+      AccountMeta.readonly(pubKey: solanaSystemProgramID, isSigner: false)
+    ];
+    final data = CompactArray.fromList([
+      ...Int.from(2, bitSize: 32),
+      ...Int.from(lamports, bitSize: 64),
+    ]);
+    final instruction = Instruction.system(
+      accounts: accounts,
+      data: data,
     );
 
     return Message._(
-      header: MessageHeader(1, 0, 1),
+      header: MessageHeader.fromAccounts(accounts),
       accounts: CompactArray.fromList([
-        Address.from(source),
-        Address.from(destination),
-        Address.from(solanaSystemProgramID),
+        for (AccountMeta account in accounts) Address.from(account.pubKey),
       ]),
       recentBlockhash: recentBlockhash.blockhash,
       instructions: CompactArray.fromList([instruction]),
